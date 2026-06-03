@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>play</title>
+  </head>
+  <body>
+	<ul id="app" class ="wrapper"></ul>
+	<div class = "buffer"></div>
+	<div class = "player-container">
+	<label class = "song-title">:Song Title</label>
+		<media-theme-tailwind-audio 
+			style="--media-secondary-color: #10141c; --media-accent-color: #495162; width: 100%">
+		<audio controls autoplay
+		id = "player"
+		slot="media"
+		playsinline
+		crossorigin="anonymous"
+		></audio>
+	</media-theme-tailwind-audio>
+	</div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

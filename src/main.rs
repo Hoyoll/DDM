@@ -45,14 +45,45 @@ impl App {
         (window, webview_builder)
     }
 
-    pub fn main_proc(url: &str, req: wry::http::Request<Vec<u8>>) -> wry::http::Response<std::borrow::Cow<'static, [u8]>> {
-        wry::http::Response::default() 
+    pub fn main_proc(_url: &str, req: wry::http::Request<Vec<u8>>) -> wry::http::Response<std::borrow::Cow<'static, [u8]>> {
+        const ENTRY: &[u8] = include_bytes!("../front/dist/index.html");
+        const JS: &[u8] = include_bytes!("../front/dist/assets/index.js");
+        const CSS: &[u8] = include_bytes!("../front/dist/assets/index.css");
+        let uri = req.uri();
+        let res = match uri.path() {
+            "/" => {
+                wry::http::Response::builder()
+                    .status(wry::http::StatusCode::OK)
+                    .header("Content-Type", "text/html")
+                    .body(std::borrow::Cow::Borrowed(ENTRY))
+                    .unwrap()
+            }
+            "assets/index.js" => {
+                wry::http::Response::builder()
+                    .status(wry::http::StatusCode::OK)
+                    .header("Content-Type", "application/javascript")
+                    .body(std::borrow::Cow::Borrowed(JS))
+                    .unwrap()
+            }
+            "assets/index.css" => {
+                wry::http::Response::builder()
+                    .status(wry::http::StatusCode::OK)
+                    .header("Content-Type", "text/css")
+                    .body(std::borrow::Cow::Borrowed(CSS))
+                    .unwrap()
+            }
+            _ => {
+                wry::http::Response::default() 
+            }
+        };
+
+        res
     }
 
     
-    pub fn play_proc(url: &str, req: wry::http::Request<Vec<u8>>) -> wry::http::Response<std::borrow::Cow<'static, [u8]>> {
-         wry::http::Response::default()       
-    }
+    //pub fn play_proc(url: &str, req: wry::http::Request<Vec<u8>>) -> wry::http::Response<std::borrow::Cow<'static, [u8]>> {
+    //     wry::http::Response::default()       
+    //}
 }
 
 impl winit::application::ApplicationHandler<Message> for App {
@@ -77,25 +108,25 @@ impl winit::application::ApplicationHandler<Message> for App {
             })
         };
 
-        self.playw = {
-            let (window, webview_builder) = self.window_builder(event_loop);
-            let webview = if cfg!(debug_assertions) {
-                webview_builder
-                    .with_url("http://localhost:5173/")
-                    .build(&window)
-                    .unwrap()
-                } else {
-                webview_builder
-                    .with_url("play://index.html")
-                    .with_custom_protocol("play".into(), move |url, req| App::play_proc(url, req))
-                    .build(&window)
-                    .unwrap()
-            };
-            Some(Context {
-                window,
-                webview
-            })
-        };
+        //self.playw = {
+        //    let (window, webview_builder) = self.window_builder(event_loop);
+        //    let webview = if cfg!(debug_assertions) {
+        //        webview_builder
+        //            .with_url("http://localhost:5173/")
+        //            .build(&window)
+        //            .unwrap()
+        //        } else {
+        //        webview_builder
+        //            .with_url("play://index.html")
+        //            .with_custom_protocol("play".into(), move |url, req| App::play_proc(url, req))
+        //            .build(&window)
+        //            .unwrap()
+        //    };
+        //    Some(Context {
+        //        window,
+        //        webview
+        //    })
+        //};
     }
 
     fn window_event(
