@@ -7,6 +7,15 @@ body {
 	background-color: #10141c;
 }
 
+html, body {
+    scrollbar-width: none; /* Firefox */
+}
+
+::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
 a {
 	color: inherit;
 }

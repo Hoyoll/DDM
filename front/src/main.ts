@@ -1,15 +1,52 @@
 import './style.css'
 import 'player.style/tailwind-audio';
 
-// example https://api.github.com/repos/<USER>/<REPO>/contents
-const REPO_URL = ""
+type Message = 
+	| { key: "READY" }
+	| { key: "CONFIG", field: string }
+	| { key: "CONFIGERR", field: string }
 
-// github token for better experience
-const TOKEN = ""
+type Source = {
+	name: string,
+	url: string,
+	token: string,
+}
+
 declare global {
 	interface Window {
+		send(msg: Message): void
+		receive(msg: Message): void
 		hydrate(url: string): void
 		swap_player(url: string, index: number): void
+		ipc: {
+			postMessage(data: any): void
+		}
+	}
+}
+
+let c_token = ""
+let q_cache: QCache = new Map()
+let history_stack: string[] = []
+let source_list: Source[] = []
+
+let html: HTMLElement = document.querySelector("#app")!
+let player: HTMLAudioElement = document.querySelector("#player")!
+let song_title: HTMLElement = document.querySelector(".song-title")!
+
+
+window.send = (msg) => {
+	window.ipc.postMessage(JSON.stringify(msg))
+}
+
+window.receive = (msg) => {
+	switch (msg.key) {
+		case "CONFIG":
+			source_list = JSON.parse(msg.field) as Source[]
+			bootstrap(source_list)
+			break
+		case "CONFIGERR":
+			err(msg.field)
+			break
 	}
 }
 
@@ -22,12 +59,27 @@ type QCache = Map<string, {
 	url: string;
 }[]>
 
-let q_cache: QCache = new Map()
-let history_stack: string[] = []
+function err(err: string) {
+	html.replaceChildren()
+	html.appendChild(err_component(`Error: ${err}`))
+	html.appendChild(err_component(`Also make sure that the json follow this schema!:`))
+	html.appendChild(err_component(`[`))
+	html.appendChild(err_component(`{ "name": string, "url": string, "token": string }`))
+	html.appendChild(err_component(`]`))
+}
 
-let html: HTMLElement = document.querySelector("#app")!
-let player: HTMLAudioElement = document.querySelector("#player")!
-let song_title: HTMLElement = document.querySelector(".song-title")!
+function err_component(err: string): HTMLLIElement {
+	const li = document.createElement("li")
+
+    const span = document.createElement("span")
+    span.className = "file"
+    span.textContent = err
+
+    li.appendChild(span)
+
+    return li 
+}
+
 function dir_component(url: string, name: string): HTMLLIElement {
 	const li = document.createElement("li")
 
@@ -36,7 +88,31 @@ function dir_component(url: string, name: string): HTMLLIElement {
     span.textContent = `~${name}/`
 
     span.addEventListener("click", () => {
-        window.hydrate(url)
+        hydrate(url)
+    })
+
+    li.appendChild(span)
+
+    return li
+}
+
+function bootstrap(sources: Source[]) {
+	html.replaceChildren()
+	for (const source of sources) {
+		html.appendChild(repo_component(source))
+	}	
+}
+
+function repo_component(source: Source): HTMLLIElement {
+	const li = document.createElement("li")
+
+    const span = document.createElement("span")
+    span.className = "dir"
+    span.textContent = `~${source.name}/`
+
+    span.addEventListener("click", () => {
+		c_token = source.token
+        hydrate(source.url)
     })
 
     li.appendChild(span)
@@ -69,7 +145,7 @@ function hydrate(url: string) {
 	html.insertAdjacentHTML('beforeend', loader())
 	fetch(url, {
 		headers: {
-			Authorization: "Bearer " + TOKEN,
+			Authorization: "Bearer " + c_token,
 		}
 	})
 	.then((res) => res.json())
@@ -124,7 +200,7 @@ function reload(url: string, stack: string[]): HTMLLIElement {
 
     span.addEventListener("click", () => {
 		stack.pop()
-        window.hydrate(url)
+        hydrate(url)
     })
 
     li.appendChild(span)
@@ -140,7 +216,7 @@ function root(history: string[]): HTMLLIElement {
 
     span.addEventListener("click", () => {
         history.length = 0
-		hydrate(REPO_URL)
+		bootstrap(source_list)
     })
 
     li.appendChild(span)
@@ -157,7 +233,13 @@ function back(history: string[]): HTMLLIElement {
 
     span.addEventListener("click", () => {
         history.pop()
-		window.hydrate(history.pop()!)
+		let hist = history.pop()
+		if (hist) {
+			hydrate(hist)
+		} else {
+			history.length = 0
+			bootstrap(source_list)
+		}	
     })
 
     li.appendChild(span)
@@ -169,4 +251,5 @@ function loader(): string {
 	return `<li><span class="loader"></span><span class="loader"></span><span class="loader"></span><span class="loader"></span></li>`
 }
 
-hydrate(REPO_URL)
+window.send({key: "READY"})
+
