@@ -5,7 +5,14 @@ type Message =
 	| { key: "READY" }
 	| { key: "CONFIG", field: string }
 	| { key: "CONFIGERR", field: string }
-
+	| { key: "QUEUE", field: {
+			id: number,
+			songs: {
+				name: string;
+				url: string;
+			}[]
+		}
+	}
 type Source = {
 	name: string,
 	url: string,
@@ -30,8 +37,8 @@ let history_stack: string[] = []
 let source_list: Source[] = []
 
 let html: HTMLElement = document.querySelector("#app")!
-let player: HTMLAudioElement = document.querySelector("#player")!
-let song_title: HTMLElement = document.querySelector(".song-title")!
+//let player: HTMLAudioElement = document.querySelector("#player")!
+//let song_title: HTMLElement = document.querySelector(".song-title")!
 
 
 window.send = (msg) => {
@@ -82,7 +89,6 @@ function err_component(err: string): HTMLLIElement {
 
 function dir_component(url: string, name: string): HTMLLIElement {
 	const li = document.createElement("li")
-
     const span = document.createElement("span")
     span.className = "dir"
     span.textContent = `~${name}/`
@@ -98,6 +104,7 @@ function dir_component(url: string, name: string): HTMLLIElement {
 
 function bootstrap(sources: Source[]) {
 	html.replaceChildren()
+	
 	for (const source of sources) {
 		html.appendChild(repo_component(source))
 	}	
@@ -176,17 +183,12 @@ function hydrate(url: string) {
 
 function swap_player(url: string, index: number) {
 	let queue = q_cache.get(url)
-	if (queue) {	
-		player.src = queue[index].url
-		player.play()
-		song_title.textContent = "~" + queue[index].name
-		player.addEventListener('ended', () => {
-			if (index >= queue.length - 1) {
-				swap_player(url, 0)
-			} else {
-				swap_player(url, index + 1)	
-			}
-		})
+	if (queue) {
+		window.send({key:"QUEUE", field: {
+			id: index,
+			songs: queue
+		}})
+		return
 	}
 }
 
